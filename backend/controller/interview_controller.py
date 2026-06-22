@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from datetime import datetime
 from models.models import Interview, Application, Candidate, Job
+from email_service import send_interview_schedule_email
 
 
 def schedule_interview(db: Session, recruiter_id: int, data: dict) -> Interview:
@@ -17,15 +18,31 @@ def schedule_interview(db: Session, recruiter_id: int, data: dict) -> Interview:
         scheduled_at=data["scheduled_at"],
         location=data.get("location", "Video Call"),
         notes=data.get("notes"),
+        meet_link=data.get("meet_link"),
         status="Scheduled",
     )
-    # Auto-advance application status
     app.status = "Interview"
     app.candidate.status = "Interview"
 
     db.add(interview)
     db.commit()
     db.refresh(interview)
+
+    # Send interview schedule email
+    try:
+        send_interview_schedule_email(
+            to=app.candidate.email,
+            name=app.candidate.name,
+            job_title=app.job.title,
+            company=app.job.company,
+            scheduled_at=interview.scheduled_at,
+            location=interview.location or "Video Call",
+            meet_link=interview.meet_link,
+            notes=interview.notes,
+        )
+    except Exception as e:
+        print(f"[Email] Failed to send interview email: {e}")
+
     return interview
 
 

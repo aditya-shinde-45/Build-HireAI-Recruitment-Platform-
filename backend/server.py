@@ -64,6 +64,14 @@ def create_tables():
                 conn.execute(text("ALTER TABLE candidates ADD COLUMN github VARCHAR"))
                 print("✓ Added github column")
 
+    # Add missing columns to interviews table
+    if "interviews" in inspector.get_table_names():
+        interview_columns = {column["name"] for column in inspector.get_columns("interviews")}
+        with engine.begin() as conn:
+            if "meet_link" not in interview_columns:
+                conn.execute(text("ALTER TABLE interviews ADD COLUMN meet_link VARCHAR"))
+                print("✓ Added meet_link column")
+
 
 app.include_router(auth_router)
 app.include_router(job_router)

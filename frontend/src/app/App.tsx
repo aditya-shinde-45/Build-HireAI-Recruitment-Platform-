@@ -17,11 +17,13 @@ import { JobPosting } from './components/JobPosting'
 import { CandidateRanking } from './components/CandidateRanking'
 import { Analytics } from './components/Analytics'
 import { AdminDashboard } from './components/AdminDashboard'
+import { ForgotPassword } from './components/ForgotPassword'
+import { ResetPassword } from './components/ResetPassword'
 import { auth, token } from './api'
 
 // -- Page type
 export type Page =
-  | 'landing' | 'login' | 'signup'
+  | 'landing' | 'login' | 'signup' | 'forgot-password' | 'reset-password'
   | 'candidate-dashboard' | 'candidate-profile' | 'resume-analyzer' | 'job-search' | 'application-tracking'
   | 'job-detail'
   | 'recruiter-dashboard' | 'job-posting' | 'manage-jobs' | 'candidate-ranking' | 'analytics'
@@ -33,7 +35,7 @@ const PROTECTED: Page[] = [
   'analytics', 'admin-dashboard',
 ]
 
-const PUBLIC_ONLY: Page[] = ['landing', 'login', 'signup']
+const PUBLIC_ONLY: Page[] = ['landing', 'login', 'signup', 'forgot-password', 'reset-password']
 
 // Pages each role is allowed to access
 const ROLE_PAGES: Record<Role, Page[]> = {
@@ -63,6 +65,8 @@ function PageRenderer({ page, jobId, editJobId }: { page: Page; jobId?: number; 
     case 'landing':               return <Landing />
     case 'login':                 return <Login />
     case 'signup':                return <Signup />
+    case 'forgot-password':       return <ForgotPassword />
+    case 'reset-password':        return <ResetPassword />
     case 'candidate-dashboard':   return <CandidateDashboard />
     case 'candidate-profile':     return <CandidateProfile />
     case 'resume-analyzer':        return <ResumeParser />

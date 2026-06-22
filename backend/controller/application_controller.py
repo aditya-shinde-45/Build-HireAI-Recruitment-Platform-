@@ -177,18 +177,19 @@ def get_ranking_by_job(db: Session):
                 "resume_profile": latest_resume.parsed_profile if latest_resume else {},
             }
             
-            # Add comprehensive match data if available
+            # Add comprehensive match data if available (breakdown only — never used for ranking)
             if comprehensive_match:
                 candidate_data["comprehensive_match"] = comprehensive_match
-                candidate_data["overall_match_score"] = comprehensive_match.get("overall_score", a.score)
             
             candidates_data.append(candidate_data)
         
-        # Sort by ATS score first, then tie-breaker score for same ATS scores
+        # Sort by ATS score (skill match) as primary.
+        # When ATS scores are equal, use tie_breaker_score (experience, education,
+        # salary fit, location, comprehensive match bonus) to separate them.
         ranked = sorted(
-            candidates_data, 
-            key=lambda x: (x["ats_score"], x["tie_breaker_score"]), 
-            reverse=True
+            candidates_data,
+            key=lambda x: (x["ats_score"], x["tie_breaker_score"]),
+            reverse=True,
         )
         
         # Assign ranks
@@ -207,6 +208,7 @@ def get_ranking_by_job(db: Session):
 
 
 def update_application_status(db: Session, app_id: int, status: str):
+    from email_service import send_selection_email, send_rejection_email
     app = db.query(Application).filter(Application.id == app_id).first()
     if not app:
         raise HTTPException(status_code=404, detail="Application not found.")
@@ -214,6 +216,17 @@ def update_application_status(db: Session, app_id: int, status: str):
     app.candidate.status = status
     db.commit()
     db.refresh(app)
+
+    candidate = app.candidate
+    job = app.job
+    try:
+        if status in ("Offer", "Hired"):
+            send_selection_email(candidate.email, candidate.name, job.title, job.company)
+        elif status == "Rejected":
+            send_rejection_email(candidate.email, candidate.name, job.title, job.company)
+    except Exception as e:
+        print(f"[Email] Failed to send status email: {e}")
+
     return app
 
 

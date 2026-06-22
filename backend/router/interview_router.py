@@ -16,12 +16,14 @@ class ScheduleRequest(BaseModel):
     application_id: int
     scheduled_at: datetime
     location: Optional[str] = "Video Call"
+    meet_link: Optional[str] = None
     notes: Optional[str] = None
 
 
 class InterviewUpdate(BaseModel):
     scheduled_at: Optional[datetime] = None
     location: Optional[str] = None
+    meet_link: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[str] = None
 

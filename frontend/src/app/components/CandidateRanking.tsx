@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Tag } from './KPICard'
-import { Mail, X, ChevronDown, ChevronUp, Briefcase, Users, MapPin, Phone, Linkedin, Github, Code, GraduationCap, Award, Trophy, Medal, Calendar, FileText, MapPinIcon, Mail as MailIcon, Cpu, Rocket, Crown, Handshake, Globe, Target } from 'lucide-react'
+import { Mail, X, ChevronDown, ChevronUp, Briefcase, Users, MapPin, Phone, Linkedin, Github, Code, GraduationCap, Award, Trophy, Medal, Calendar, FileText, MapPinIcon, Mail as MailIcon, Cpu, Rocket, Crown, Handshake, Globe, Target, Link, Clock, CheckCircle2 } from 'lucide-react'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
 } from 'recharts'
@@ -10,9 +10,137 @@ const BASE = import.meta.env.VITE_API_URL ?? ''
 const card = 'bg-white rounded-xl'
 const cardStyle = { border: '1px solid #e2e8f0', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }
 
-function apiFetch(path: string) {
+function apiFetch(path: string, options: RequestInit = {}) {
   const t = localStorage.getItem('hireai_token')
-  return fetch(`${BASE}${path}`, { headers: t ? { Authorization: `Bearer ${t}` } : {} }).then(r => r.json())
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(options.headers as any ?? {}) }
+  if (t) headers['Authorization'] = `Bearer ${t}`
+  return fetch(`${BASE}${path}`, { ...options, headers }).then(r => r.json())
+}
+
+// ── Schedule Interview Modal ───────────────────────────────────────────────
+function ScheduleModal({ candidate, onClose, onScheduled }: {
+  candidate: any
+  onClose: () => void
+  onScheduled: () => void
+}) {
+  const [scheduledAt, setScheduledAt] = useState('')
+  const [location, setLocation] = useState('Video Call')
+  const [meetLink, setMeetLink] = useState('')
+  const [notes, setNotes] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!scheduledAt) { setError('Please select a date and time.'); return }
+    setError('')
+    setLoading(true)
+    try {
+      const res = await apiFetch('/interviews/', {
+        method: 'POST',
+        body: JSON.stringify({
+          application_id: candidate.application_id,
+          scheduled_at: new Date(scheduledAt).toISOString(),
+          location,
+          meet_link: meetLink || null,
+          notes: notes || null,
+        }),
+      })
+      if (res.detail) { setError(res.detail); return }
+      setSuccess(true)
+      setTimeout(() => { onScheduled(); onClose() }, 1800)
+    } catch {
+      setError('Failed to schedule interview. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(4px)' }}>
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
+        style={{ border: '1px solid #e2e8f0' }}>
+        <div style={{ height: 4, background: 'linear-gradient(90deg,#6366f1,#8b5cf6)' }} />
+        <div className="p-6">
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Schedule Interview</h3>
+              <p className="text-xs text-slate-500 mt-0.5">An email will be sent to <strong>{candidate.name}</strong></p>
+            </div>
+            <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-colors">
+              <X size={16} />
+            </button>
+          </div>
+
+          {success ? (
+            <div className="text-center py-6">
+              <CheckCircle2 size={40} className="mx-auto text-emerald-500 mb-3" />
+              <p className="text-sm font-bold text-slate-900">Interview Scheduled!</p>
+              <p className="text-xs text-slate-500 mt-1">Confirmation email sent to {candidate.email}</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Date &amp; Time *</label>
+                <input type="datetime-local" value={scheduledAt}
+                  onChange={e => setScheduledAt(e.target.value)}
+                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  style={{ color: '#0f172a' }} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Location</label>
+                <div className="relative">
+                  <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input value={location} onChange={e => setLocation(e.target.value)}
+                    placeholder="Video Call / Office address"
+                    className="w-full pl-8 pr-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    style={{ color: '#0f172a' }} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Google Meet / Zoom Link</label>
+                <div className="relative">
+                  <Link size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input value={meetLink} onChange={e => setMeetLink(e.target.value)}
+                    placeholder="https://meet.google.com/..."
+                    className="w-full pl-8 pr-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    style={{ color: '#0f172a' }} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Notes for Candidate</label>
+                <textarea value={notes} onChange={e => setNotes(e.target.value)}
+                  rows={2} placeholder="Interview format, what to prepare, etc."
+                  className="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none"
+                  style={{ color: '#0f172a' }} />
+              </div>
+
+              {error && (
+                <div className="px-3 py-2.5 rounded-lg bg-red-50 border border-red-200">
+                  <p className="text-xs font-medium text-red-700">{error}</p>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={onClose}
+                  className="flex-1 py-2.5 rounded-lg text-xs font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors">
+                  Cancel
+                </button>
+                <button type="submit" disabled={loading}
+                  className="flex-1 py-2.5 rounded-lg text-xs font-semibold text-white transition-all disabled:opacity-60 flex items-center justify-center gap-1.5"
+                  style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)' }}>
+                  <Calendar size={12} />
+                  {loading ? 'Scheduling…' : 'Schedule & Send Email'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function ScoreBadge({ score }: { score: number }) {
@@ -36,6 +164,7 @@ function CandidateRow({ c, onInvite, onReject, invited, rejected }: {
   c: any; onInvite: () => void; onReject: () => void; invited: boolean; rejected: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [showSchedule, setShowSchedule] = useState(false)
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({
     technical: false,
     experience: false,
@@ -50,20 +179,28 @@ function CandidateRow({ c, onInvite, onReject, invited, rejected }: {
     setExpandedCards(prev => ({ ...prev, [card]: !prev[card] }))
   }
 
-  // Use comprehensive match score if available, otherwise fall back to ATS score
-  const displayScore = c.overall_match_score ?? c.ats_score ?? 0
+  // ATS score (skill match %) is the sole ranking signal — always show it.
+  const displayScore = Math.round(c.ats_score ?? 0)
   const hasComprehensiveMatch = !!c.comprehensive_match
 
   const radarData = [
-    { subject: 'ATS Score',   A: c.ats_score ?? 0 },
-    { subject: 'Experience',  A: Math.min((c.experience ?? 0) * 10, 100) },
+    { subject: 'ATS Score',      A: c.ats_score ?? 0 },
+    { subject: 'Experience',     A: Math.min((c.experience ?? 0) * 10, 100) },
     { subject: 'Matched Skills', A: c.matched_skills?.length > 0 ? Math.min(c.matched_skills.length * 20, 100) : 0 },
-    { subject: 'Education',   A: c.education ? 75 : 30 },
-    { subject: 'Profile',     A: c.location ? 70 : 40 },
+    { subject: 'Education',      A: c.education ? 75 : 30 },
+    { subject: 'Profile',        A: c.location ? 70 : 40 },
   ]
 
   return (
-    <div className="rounded-xl overflow-hidden transition-all" style={{ border: '1px solid #e2e8f0' }}>
+    <>
+      {showSchedule && (
+        <ScheduleModal
+          candidate={c}
+          onClose={() => setShowSchedule(false)}
+          onScheduled={() => { onInvite(); setShowSchedule(false) }}
+        />
+      )}
+      <div className="rounded-xl overflow-hidden transition-all" style={{ border: '1px solid #e2e8f0' }}>
       {/* Main row */}
       <div className="flex items-center gap-4 px-4 py-3 bg-white hover:bg-slate-50 transition-colors">
         <div className="min-w-[32px] text-center">{rankIcon(c.rank - 1)}</div>
@@ -90,14 +227,14 @@ function CandidateRow({ c, onInvite, onReject, invited, rejected }: {
             <Calendar size={10} /> {c.applied_date}
           </span>
           <div className="flex gap-1.5">
-            <button onClick={onInvite} disabled={invited}
+            <button onClick={() => setShowSchedule(true)} disabled={invited}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-60"
               style={{
                 background: invited ? '#ecfdf5' : '#eef2ff',
                 border: `1px solid ${invited ? '#6ee7b7' : '#c7d2fe'}`,
                 color: invited ? '#10b981' : '#6366f1',
               }}>
-              <Mail size={10} />{invited ? 'Invited' : 'Invite'}
+              <Calendar size={10} />{invited ? 'Scheduled' : 'Schedule'}
             </button>
             {!rejected && (
               <button onClick={onReject}
@@ -678,7 +815,8 @@ function CandidateRow({ c, onInvite, onReject, invited, rejected }: {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }
 

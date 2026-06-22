@@ -227,7 +227,7 @@ export function Login() {
                   </label>
                   <button
                     type="button"
-                    onClick={() => navigate('login')} // TODO: Implement forgot password flow
+                    onClick={() => navigate('forgot-password')}
                     className="text-sm font-medium transition-colors hover:underline"
                     style={{ color: COLORS.precisionBlue }}
                   >

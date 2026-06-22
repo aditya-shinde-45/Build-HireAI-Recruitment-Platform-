@@ -41,6 +41,7 @@ class Job(Base):
     recruiter = relationship("User", back_populates="jobs_posted")
     applications = relationship("Application", back_populates="job")
     interviews = relationship("Interview", back_populates="job")
+    description = Column(String, nullable=True)
 
 
 # ── Candidate ─────────────────────────────────────────────────────────────
@@ -117,8 +118,23 @@ class Interview(Base):
     location = Column(String)
     notes = Column(String)
     status = Column(String, default="Scheduled")  # Scheduled | Completed | Cancelled
+    meet_link = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     application = relationship("Application", back_populates="interviews")
     candidate = relationship("Candidate", back_populates="interviews")
     job = relationship("Job", back_populates="interviews")
+
+
+# ── Password Reset Token ──────────────────────────────────────────────────
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token = Column(String, unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    used = Column(String, default="false")  # "false" | "true"
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User")
