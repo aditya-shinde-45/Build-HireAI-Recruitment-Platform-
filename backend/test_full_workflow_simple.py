@@ -58,7 +58,7 @@ def test_workflow():
     rec_data = {
         "name": "John Recruiter",
         "email": "john.rec@example.com",
-        "password": "Recruiter123!",
+        "password": "countinu",
         "role": "recruiter"
     }
     resp = requests.post(f"{BASE_URL}/auth/register", json=rec_data)

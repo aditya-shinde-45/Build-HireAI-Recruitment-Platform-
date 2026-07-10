@@ -41,7 +41,6 @@ class Job(Base):
     recruiter = relationship("User", back_populates="jobs_posted")
     applications = relationship("Application", back_populates="job")
     interviews = relationship("Interview", back_populates="job")
-    description = Column(String, nullable=True)
 
 
 # ── Candidate ─────────────────────────────────────────────────────────────
